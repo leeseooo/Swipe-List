@@ -8,9 +8,16 @@ import axios from "axios";
 export default function SwipeableList() {
   const { isLoading, data, error } = useQuery("packingList", async () => {
     const { data } = await axios.get("/api/pack");
-    return data;
+    return data as Pack[];
   });
   const [isEdit, setIsEdit] = useState(false);
+  const [isDragged, setIsDragged] = useState<boolean[]>(
+    Array(data?.length).fill(false)
+  );
+
+  const handleIsDragged = (tmpArr: boolean[]) => {
+    setIsDragged(tmpArr);
+  };
 
   if (isLoading) return <div>Loading...</div>;
   if (error instanceof Error) return <span>Error : {error.message}</span>;
@@ -18,8 +25,14 @@ export default function SwipeableList() {
   return (
     <StWrapper>
       <button onClick={() => setIsEdit((prev) => !prev)}>수정하기</button>
-      {data.map((pack: Pack) => (
-        <SwipeablelistItem isEdit={isEdit} id={pack.id} key={pack.id} />
+      {data?.map((pack: Pack) => (
+        <SwipeablelistItem
+          isEdit={isEdit}
+          id={pack.id}
+          key={pack.id}
+          isDragged={isDragged[pack.id]}
+          handleIsDragged={(tmpArr: boolean[]) => handleIsDragged(tmpArr)}
+        />
       ))}
     </StWrapper>
   );

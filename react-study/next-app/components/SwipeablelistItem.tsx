@@ -1,15 +1,20 @@
 import axios from "axios";
-import { useState } from "react";
 import { useQuery } from "react-query";
 import styled from "styled-components";
 
 interface ItemProps {
   isEdit: boolean;
   id: number;
+  handleIsDragged: (tmpArr: boolean[]) => void;
+  isDragged: boolean;
 }
 
-export default function SwipeablelistItem({ isEdit, id }: ItemProps) {
-  const [isDragged, setIsDragged] = useState(false);
+export default function SwipeablelistItem({
+  isEdit,
+  id,
+  handleIsDragged,
+  isDragged,
+}: ItemProps) {
   const { isLoading, data, error } = useQuery("packingList", async () => {
     const { data } = await axios.get("/api/pack");
     return data;
@@ -24,11 +29,17 @@ export default function SwipeablelistItem({ isEdit, id }: ItemProps) {
       endX = e.clientX;
     }
     function Up() {
+      let tmpArr = Array(data?.length).fill(false);
+
       if (startX > endX) {
-        setIsDragged(true);
+        for (let i = 0; i < tmpArr.length; i++) {
+          if (i === id) tmpArr[i] = true;
+          else tmpArr[i] = false;
+        }
       } else if (startX < endX) {
-        setIsDragged(false);
+        tmpArr = Array(data?.length).fill(false);
       }
+      handleIsDragged(tmpArr);
       document.removeEventListener("mousemove", Move);
     }
     document.addEventListener("mousemove", Move);
@@ -43,11 +54,18 @@ export default function SwipeablelistItem({ isEdit, id }: ItemProps) {
       endX = e.targetTouches[0].clientX;
     }
     function End() {
+      let tmpArr = Array(data?.length).fill(false);
+
       if (startX > endX) {
-        setIsDragged(true);
+        for (let i = 0; i < tmpArr.length; i++) {
+          if (i === id) tmpArr[i] = true;
+          else tmpArr[i] = false;
+        }
       } else if (startX < endX) {
-        setIsDragged(false);
+        tmpArr = Array(data?.length).fill(false);
       }
+      handleIsDragged(tmpArr);
+
       document.removeEventListener("touchmove", Move);
     }
     document.addEventListener("touchmove", Move);

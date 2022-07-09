@@ -1,9 +1,10 @@
-import { ReactElement, useState } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import Layout from "../components/layout";
 import Sidebar from "../components/sidebar";
 import axios from "axios";
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient, useInfiniteQuery } from "react-query";
 import styled from "styled-components";
+import { useInView } from "react-intersection-observer";
 
 interface Blog {
   id: number;
@@ -15,11 +16,25 @@ export default function Blog() {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [ref, inView] = useInView();
 
-  const { isLoading, data, error } = useQuery("blogData", async () => {
-    const { data } = await axios.get("/api/blog");
-    return data;
-  });
+  const { status, data, error, isFetching, hasNextPage, fetchNextPage } =
+    useInfiniteQuery(
+      "infiniteBlog",
+      ({ pageParam = 1 }) => axios.get(`/api/blog/${pageParam}`),
+      {
+        getNextPageParam: (lastPage, allPages) => {
+          console.log(lastPage.data);
+          return lastPage.data.id + 1;
+        },
+      }
+    );
+
+  useEffect(() => {
+    if (!data) return;
+    const isLastPage = data?.pages[data.pages.length - 1] ? true : false;
+    if (!isLastPage && inView) fetchNextPage();
+  }, [inView]);
 
   const mutation = useMutation({
     mutationFn: async () =>
@@ -40,7 +55,7 @@ export default function Blog() {
     setContent("");
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (status === "loading") return <div>Loading...</div>;
   else if (error instanceof Error) return <span>Error : {error.message}</span>;
 
   return (
@@ -63,14 +78,22 @@ export default function Blog() {
         <button type="submit">Submit</button>
       </form>
       <StBlogDataWrapper>
-        {data &&
-          data.map((blogData: Blog) => (
+        {data?.pages[0].data.map((blogData: Blog) => {
+          return (
             <StBlogData key={blogData.id}>
               <h1>{blogData.title}</h1>
               <p>{blogData.body}</p>
             </StBlogData>
-          ))}
+          );
+        })}
       </StBlogDataWrapper>
+      <button
+        ref={ref}
+        disabled={isFetching || !hasNextPage}
+        onClick={() => hasNextPage && fetchNextPage()}
+      >
+        {hasNextPage ? "Load More" : "No More Data.."}
+      </button>
     </section>
   );
 }

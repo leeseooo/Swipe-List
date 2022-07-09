@@ -40,6 +40,8 @@ export default function Sidebar() {
 }
 
 const StNav = styled.nav`
+  position: sticky;
+  top: 0;
   width: 250px;
   height: 100%;
   display: flex;
